@@ -1,0 +1,56 @@
+bout Analog Devices
+
+Analog Devices, Inc. (NASDAQ: ADI ) is a global semiconductor leader that bridges the physical and digital worlds to enable breakthroughs at the Intelligent Edge. ADI combines analog, digital, and software technologies into solutions that help drive advancements in digitized factories, mobility, and digital healthcare, combat climate change, and reliably connect humans and the world. With revenue of more than $9 billion in FY24 and approximately 24,000 people globally, ADI ensures today's innovators stay Ahead of What's Possible™. Learn more at www.analog.com and on LinkedIn and Twitter (X).
+
+          
+
+Vibe Coder-in-Residence (GenAI Tech EA) 
+
+Mission 
+
+Shadow our VP of Edge AI, capture every friction point in real time, and turn it into an automated GenAI workflow—shipping daily. Act as founding engineer for the VP’s digital twin “brain” while evangelizing and broadcasting the journey for maximum “AI halo” impact. 
+
+What You’ll Do (First 6 Months) 
+
+Day 1-30 — Observe → Automate: Pair-shadow meetings, Teams, doc reviews. Ship micro-agents that cut repeat tasks (think: LLM-powered agenda generator, decision-tracker bot). 
+Day 31-60 — Scale → Compose: Chain agents together—calendar optimizer calls the meeting-minute bot which feeds the action-item tracker. Instrument with telemetry; cut human touchpoints by >25 %. Build a microsite “tech radar” that maps VP’s Deep Research notes into visible tech-trends radar. Build a “team tracker” agent to generate the weekly status radar for whole of VP’s org. 
+Day 61-90 — Externalize → Evangelize: Package best agents as internal templates. Produce a public demo or open-sourced repo; partner with Comms for media drops. 
+Month 4-6 — Digital Twin v1: Fine-tune a personal-style LLM and mult-agent fabric that drafts briefs and strategic emails and technical articles indistinguishable from the VP. Formal Turing evaluation: randomize % past emails into twin vs. VP variants, have peers label author; shoot for ≥ 70 % confusion before iterating toward BLEU 0.75 goal. 
+ 
+Daily Responsibilities 
+
+Live-code GenAI agents in Python / TypeScript using LangChain, OpenAI etc. 
+Fine-tune and orchestrate LLMs (OpenAI, Claude, local models). 
+Rapid-fire prompt engineering; optimize systems prompts for set of VP agents. 
+Integrate with enterprise APIs (Teams, Confluence, Office). 
+Maintain a “metrics or it didn’t happen” dashboard (latency, adoption, minutes saved). 
+Co-write technical blogs and demo scripts with Comms to amplify the story. 
+ 
+Must-Haves 
+
+Track record of shipping GenAI products in < 2 weeks cycles. Provide links or repos. 
+Mastery of GenAI and agent frameworks (Langchain, MCP etc). 
+Rapid full-stack micro-site builder (e.g. Vercel). 
+Comfortable pair-programming or pair-prompting in a fast-moving exec environment; ego-less, outcome-obsessed. 
+Storytelling chops—can turn a changelog into a headline. 
+Time zone: The role is based out of San Jose (CA, USA) or Limerick (Ireland), but the applicant can work remotely and must be willing to work in whichever time zone the VP is in, mostly the CA time zone. 
+ 
+Nice-to-Haves 
+
+Experience reverse-engineering personal workflows or building AI copilots. 
+Familiar with range of productivity hacks and how to code them as agents 
+Prior startup founding engineer (doesn’t matter if company succeeeded) or hacker-in-residence cred. 
+Familiar with enterprise security & compliance for LLM rollouts. 
+ 
+Success Metrics 
+
+≥ 5 production agents live by day 30. 
+≥ 30 % reduction in VP calendar load by day 90. 
+≥ 2 external media features or conference demos by month 6. 
+ 
+How to Apply 
+Skip the résumé. Ship a working agent that summarizes this job description, drafts your intro email in the VP’s voice, and posts both to a public GitHub repo. Include a README on architecture choices. Fastest high-quality submission wins the initial selection interview. Successful applicants will be expected to live-hack to solve a set of indicative problems. Finalists will live-code with our VP. 
+
+For positions requiring access to technical data, Analog Devices, Inc. may have to obtain export  licensing approval from the U.S. Department of Commerce - Bureau of Industry and Security and/or the U.S. Department of State - Directorate of Defense Trade Controls.  As such, applicants for this position – except US Citizens, US Permanent Residents, and protected individuals as defined by 8 U.S.C. 1324b(a)(3) – may have to go through an export licensing review process.
+
+Analog Devices is an equal opportunity employer. We foster a culture where everyone has an opportunity to succeed regardless of their race, color, religion, age, ancestry, national origin, social or ethnic origin, sex, sexual orientation, gender, gender identity, gender expression, marital status, pregnancy, parental status, disability, medical condition, genetic information, military or veteran status, union membership, and political affiliation, or any other legally protected group.
