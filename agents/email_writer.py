@@ -68,6 +68,9 @@ class EmailGenerationTool(BaseTool):
         try:
             # Look for name in contact info or first few lines
             raw_text = resume_data.get("raw_content", {}).get("raw_text", "")
+            if not raw_text:
+                raw_text = resume_data.get("content", "")
+            
             lines = raw_text.split('\n')
             
             # First non-empty line is usually the name
@@ -279,6 +282,128 @@ class EmailWriterAgent:
             handle_parsing_errors=True
         )
     
+    def _extract_candidate_name(self, resume_data: Dict[str, Any]) -> str:
+        """Extract candidate name from resume data"""
+        try:
+            # Look for name in contact info or first few lines
+            raw_text = resume_data.get("raw_content", {}).get("raw_text", "")
+            if not raw_text:
+                raw_text = resume_data.get("content", "")
+            
+            lines = raw_text.split('\n')
+            
+            # First non-empty line is usually the name
+            for line in lines:
+                line = line.strip()
+                if line and len(line) > 2 and not any(keyword in line.lower() for keyword in ['email', 'phone', 'linkedin', 'github']):
+                    return line
+            
+            return "Your Name"  # Fallback
+        except Exception:
+            return "Your Name"
+    
+    def _extract_key_skills(self, resume_data: Dict[str, Any]) -> str:
+        """Extract key skills from resume data for basic email"""
+        try:
+            skills = resume_data.get("raw_content", {}).get("skills", [])
+            if not skills:
+                # Try to extract from analysis
+                analysis = resume_data.get("analysis", "")
+                if analysis:
+                    # Simple skill extraction from text
+                    import re
+                    skill_patterns = [
+                        r'proficient\s+in\s+([^,]+)',
+                        r'expertise\s+in\s+([^,]+)',
+                        r'skills:\s*([^,]+)',
+                        r'technologies:\s*([^,]+)'
+                    ]
+                    
+                    for pattern in skill_patterns:
+                        matches = re.findall(pattern, analysis, re.IGNORECASE)
+                        if matches:
+                            skills.extend([skill.strip() for skill in matches[0].split(',')])
+            
+            if skills:
+                return f"Key skills: {', '.join(skills[:5])}"
+            else:
+                return "Experienced professional with relevant background in technology and business."
+        except Exception:
+            return "Experienced professional with relevant background in technology and business."
+    
+    def _create_concise_pitch(self, resume_summary: str, job_summary: str, value_proposition: str) -> str:
+        """Create a concise 2-sentence pitch connecting candidate to role"""
+        try:
+            # Extract key points from summaries
+            resume_key = self._extract_key_achievement(resume_summary)
+            job_key = self._extract_key_requirement(job_summary)
+            
+            # Create more natural pitch
+            if "digital twin" in job_key.lower():
+                pitch = f"{resume_key} This experience directly translates to building your VP's digital twin and orchestrating AI agents."
+            elif "rapid" in job_key.lower() or "shipping" in job_key.lower():
+                pitch = f"{resume_key} This demonstrates my ability to ship high-impact solutions rapidly, exactly what you need for daily GenAI deployments."
+            else:
+                pitch = f"{resume_key} This directly addresses your need for {job_key}."
+            
+            return pitch
+            
+        except Exception as e:
+            logger.error(f"Error creating concise pitch: {e}")
+            return "My experience in AI product development and rapid prototyping aligns perfectly with your need for a founding engineer who can ship GenAI solutions daily."
+    
+    def _extract_key_achievement(self, resume_summary: str) -> str:
+        """Extract the most relevant achievement from resume summary"""
+        try:
+            # Look for quantifiable achievements
+            import re
+            achievement_patterns = [
+                r'(\d+%?\s+increase[^.]*)',
+                r'(\d+[^.]*growth[^.]*)',
+                r'(\d+[^.]*customers[^.]*)',
+                r'(shipped[^.]*)',
+                r'(built[^.]*)',
+                r'(launched[^.]*)'
+            ]
+            
+            for pattern in achievement_patterns:
+                matches = re.findall(pattern, resume_summary, re.IGNORECASE)
+                if matches:
+                    return matches[0].strip()
+            
+            # Fallback to first sentence
+            sentences = resume_summary.split('.')
+            if sentences:
+                return sentences[0].strip()
+            
+            return "My proven track record of building AI platforms and driving business growth"
+            
+        except Exception:
+            return "My proven track record of building AI platforms and driving business growth"
+    
+    def _extract_key_requirement(self, job_summary: str) -> str:
+        """Extract the most critical requirement from job summary"""
+        try:
+            # Look for key requirements
+            key_phrases = [
+                "rapid automation",
+                "shipping daily", 
+                "GenAI agents",
+                "digital twin",
+                "workflow orchestration",
+                "AI platforms"
+            ]
+            
+            for phrase in key_phrases:
+                if phrase.lower() in job_summary.lower():
+                    return phrase
+            
+            # Fallback
+            return "a founding engineer who can ship GenAI solutions rapidly"
+            
+        except Exception:
+            return "a founding engineer who can ship GenAI solutions rapidly"
+    
     def _create_agent(self):
         """Create the LangChain agent"""
         system_prompt = """You are an Email Writer Agent specialized in creating executive-style job application emails.
@@ -306,7 +431,7 @@ Always focus on creating emails that are personalized, relevant, and compelling.
         )
     
     def write_email(self, resume_data: Dict[str, Any], job_analysis: Dict[str, Any], 
-                    email_style: str = "auto") -> Dict[str, Any]:
+                    email_style: str = "auto", targeted_summaries: Dict[str, Any] = None) -> Dict[str, Any]:
         """
         Write an executive-style email based on resume and job analysis
         
@@ -319,39 +444,32 @@ Always focus on creating emails that are personalized, relevant, and compelling.
             Dictionary containing the generated email content
         """
         try:
-            # Use the tool to generate email content
-            tool_result = self.tools[0]._run(resume_data, job_analysis, email_style)
-            
-            if not tool_result.get("success", False):
-                return tool_result
-            
-            # Use the agent for refinement and optimization
-            refinement_prompt = f"""
-            Review and optimize the following email content for maximum impact:
-            
-            Email Content:
-            {tool_result.get('email_content', {}).get('full_email', '')}
-            
-            Please provide:
-            1. Suggestions for improving the opening hook
-            2. Ways to make the experience highlights more compelling
-            3. Recommendations for strengthening the call-to-action
-            4. Overall tone and style assessment
-            5. Any specific improvements for better engagement
-            """
-            
-            result = self.agent_executor.invoke({
-                "input": refinement_prompt,
-                "chat_history": []
-            })
-            
-            return {
-                "success": True,
-                "email_content": tool_result.get("email_content", {}),
-                "style_used": tool_result.get("style_used", email_style),
-                "refinement_suggestions": result.get("output", ""),
-                "message": "Successfully generated and refined email content"
-            }
+            # Use targeted summaries if available
+            if targeted_summaries and targeted_summaries.get("success", False):
+                # Generate email using targeted summaries for better relevance
+                email_content = self._generate_targeted_email(
+                    resume_data, job_analysis, email_style, targeted_summaries
+                )
+                
+                return {
+                    "success": True,
+                    "email_content": email_content,
+                    "style_used": email_style,
+                    "message": "Successfully generated targeted email content using summaries"
+                }
+            else:
+                # Fallback to original tool-based generation
+                tool_result = self.tools[0]._run(resume_data, job_analysis, email_style)
+                
+                if not tool_result.get("success", False):
+                    return tool_result
+                
+                return {
+                    "success": True,
+                    "email_content": tool_result.get("email_content", {}),
+                    "style_used": tool_result.get("style_used", email_style),
+                    "message": "Successfully generated email content using fallback method"
+                }
             
         except Exception as e:
             logger.error(f"Error in email writing agent: {e}")
@@ -360,25 +478,150 @@ Always focus on creating emails that are personalized, relevant, and compelling.
                 "error": str(e)
             }
     
+    def _generate_targeted_email(self, resume_data: Dict[str, Any], job_analysis: Dict[str, Any], 
+                                email_style: str, targeted_summaries: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate targeted email using summaries for better relevance"""
+        try:
+            # Extract targeted summaries
+            resume_summary = targeted_summaries.get("targeted_resume_summary", "")
+            job_summary = targeted_summaries.get("job_summary", "")
+            value_proposition = targeted_summaries.get("value_proposition", "")
+            
+            # Get candidate name
+            candidate_name = self._extract_candidate_name(resume_data)
+            
+            # Get company information
+            company_info = job_analysis.get("basic_analysis", {}).get("company_info", {})
+            company_name = company_info.get("name", "the company")
+            
+            # Generate targeted email content
+            email_content = self._create_targeted_email_content(
+                candidate_name=candidate_name,
+                company_name=company_name,
+                resume_summary=resume_summary,
+                job_summary=job_summary,
+                value_proposition=value_proposition,
+                email_style=email_style
+            )
+            
+            return email_content
+            
+        except Exception as e:
+            logger.error(f"Error generating targeted email: {e}")
+            # Fallback to basic email structure
+            return self._create_basic_email_content(resume_data, job_analysis, email_style)
+    
+    def _create_targeted_email_content(self, candidate_name: str, company_name: str, 
+                                     resume_summary: str, job_summary: str, 
+                                     value_proposition: str, email_style: str) -> Dict[str, Any]:
+        """Create targeted email content using summaries - MAXIMUM 4 SENTENCES"""
+        try:
+            # Create subject line
+            subject = f"Application for Vibe Coder-in-Residence (GenAI Tech EA) - {candidate_name}"
+            
+            # Create concise 4-sentence email body
+            body = f"""
+Dear Hiring Manager,
+
+I am excited to apply for the Vibe Coder-in-Residence role at {company_name}, where I can leverage my proven track record of shipping GenAI products in rapid cycles and building AI-native platforms that drive measurable business impact.
+
+{self._create_concise_pitch(resume_summary, job_summary, value_proposition)}
+
+I would welcome the opportunity to discuss how my experience in AI product development, rapid prototyping, and executive collaboration can contribute to building the VP's digital twin and accelerating your Edge AI mission.
+
+Best regards,
+{candidate_name}
+            """.strip()
+            
+            return {
+                "subject": subject,
+                "body": body,
+                "full_email": f"Subject: {subject}\n\n{body}",
+                "style": email_style,
+                "targeted": True
+            }
+            
+        except Exception as e:
+            logger.error(f"Error creating targeted email content: {e}")
+            # Return basic structure as fallback
+            return {
+                "subject": f"Application for Position - {candidate_name}",
+                "body": f"I am interested in the position at {company_name}.",
+                "full_email": f"Subject: Application for Position - {candidate_name}\n\nI am interested in the position at {company_name}.",
+                "style": email_style,
+                "targeted": False
+            }
+    
+    def _create_basic_email_content(self, resume_data: Dict[str, Any], 
+                                   job_analysis: Dict[str, Any], email_style: str) -> Dict[str, Any]:
+        """Create basic email content as fallback"""
+        try:
+            candidate_name = self._extract_candidate_name(resume_data)
+            company_name = job_analysis.get("basic_analysis", {}).get("company_info", {}).get("name", "the company")
+            
+            subject = f"Application for Position - {candidate_name}"
+            body = f"""
+Dear Hiring Manager,
+
+I am writing to express my interest in the position at {company_name}.
+
+{self._extract_key_skills(resume_data)}
+
+I look forward to discussing how I can contribute to your team.
+
+Best regards,
+{candidate_name}
+            """.strip()
+            
+            return {
+                "subject": subject,
+                "body": body,
+                "full_email": f"Subject: {subject}\n\n{body}",
+                "style": email_style,
+                "targeted": False
+            }
+            
+        except Exception as e:
+            logger.error(f"Error creating basic email content: {e}")
+            return {
+                "subject": "Application for Position",
+                "body": "I am interested in this position and would welcome the opportunity to discuss it.",
+                "full_email": "Subject: Application for Position\n\nI am interested in this position and would welcome the opportunity to discuss it.",
+                "style": email_style,
+                "targeted": False
+            }
+    
     def save_email_to_markdown(self, email_data: Dict[str, Any], output_path: str = "output/email.md") -> bool:
         """Save the generated email to a markdown file"""
         try:
             # Ensure output directory exists
             os.makedirs(os.path.dirname(output_path), exist_ok=True)
             
-            # Create markdown content
+            # Create simple markdown content directly
             email_content = email_data.get("email_content", {})
-            markdown_content = EmailFormatter.create_markdown_email(
-                subject=email_content.get("subject", "Job Application"),
-                greeting=email_content.get("greeting", "Dear Hiring Manager,"),
-                body=email_content.get("body", ""),
-                closing=email_content.get("closing", ""),
-                signature=email_content.get("signature", ""),
-                metadata={
-                    "Style": email_data.get("style_used", "unknown"),
-                    "Generated": "by AI Job Application Agent"
-                }
-            )
+            subject = email_content.get("subject", "Job Application")
+            body = email_content.get("body", "")
+            style = email_data.get("style_used", "unknown")
+            
+            markdown_content = f"""# {subject}
+
+---
+
+**From:** [Your Email]  
+**To:** Hiring Manager  
+**Subject:** {subject}
+
+---
+
+{body}
+
+---
+
+## Email Metadata
+
+**Style:** {style}
+**Generated:** by AI Job Application Agent
+"""
             
             # Write to file
             with open(output_path, 'w', encoding='utf-8') as f:

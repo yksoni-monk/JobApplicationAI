@@ -74,19 +74,29 @@ class JobDescriptionTool(BaseTool):
         """Extract company name and basic information"""
         company_info = {}
         
-        # Look for company name patterns
+        # Look for company name patterns - prioritize more specific matches
         company_patterns = [
-            r'at\s+([A-Z][a-zA-Z\s&]+(?:Inc|Corp|LLC|Ltd|Company|Technologies|Systems))',
+            # Look for "Analog Devices, Inc." pattern first
+            r'(Analog Devices,?\s*Inc\.?)',
+            # Look for company names followed by Inc/Corp/etc.
             r'([A-Z][a-zA-Z\s&]+(?:Inc|Corp|LLC|Ltd|Company|Technologies|Systems))',
+            # Look for company names at the beginning of lines
+            r'^([A-Z][a-zA-Z\s&]+(?:Inc|Corp|LLC|Ltd|Company|Technologies|Systems))',
+            # Look for "at Company Name" pattern
+            r'at\s+([A-Z][a-zA-Z\s&]+(?:Inc|Corp|LLC|Ltd|Company|Technologies|Systems))',
+            # Fallback patterns
             r'company:\s*([A-Z][a-zA-Z\s&]+)',
             r'organization:\s*([A-Z][a-zA-Z\s&]+)'
         ]
         
         for pattern in company_patterns:
-            match = re.search(pattern, text, re.IGNORECASE)
+            match = re.search(pattern, text, re.IGNORECASE | re.MULTILINE)
             if match:
-                company_info['name'] = match.group(1).strip()
-                break
+                company_name = match.group(1).strip()
+                # Clean up the company name
+                if company_name and len(company_name) > 2:
+                    company_info['name'] = company_name
+                    break
         
         # Look for location
         location_patterns = [

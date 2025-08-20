@@ -72,22 +72,22 @@ class DocumentCache:
             logger.error(f"Error saving cache: {e}")
             raise
     
-    def get_cached_resume(self, resume_path: str) -> Tuple[Optional[str], bool]:
+    def get_cached_resume(self, resume_path: str) -> Tuple[Optional[str], Optional[str], bool]:
         """
-        Get cached resume text if available and valid
+        Get cached resume text and summary if available and valid
         
         Args:
             resume_path: Path to the resume file
             
         Returns:
-            Tuple of (cached_text, is_valid)
+            Tuple of (cached_text, cached_summary, is_valid)
         """
         try:
             cache_file_path = self._get_cache_file_path(resume_path, "resume")
             cached_data = self._load_cache(cache_file_path)
             
             if not cached_data:
-                return None, False
+                return None, None, False
             
             # Check if file has been modified since caching
             cached_timestamp = cached_data.get("timestamp", 0)
@@ -95,31 +95,31 @@ class DocumentCache:
             
             if current_timestamp > cached_timestamp:
                 logger.info(f"Resume file modified, cache invalid: {resume_path}")
-                return None, False
+                return None, None, False
             
             logger.info(f"Using cached resume: {resume_path}")
-            return cached_data.get("parsed_text"), True
+            return cached_data.get("parsed_text"), cached_data.get("summary"), True
             
         except Exception as e:
             logger.error(f"Error checking resume cache: {e}")
-            return None, False
+            return None, None, False
     
-    def get_cached_job_description(self, job_path: str) -> Tuple[Optional[str], bool]:
+    def get_cached_job_description(self, job_path: str) -> Tuple[Optional[str], Optional[str], bool]:
         """
-        Get cached job description text if available and valid
+        Get cached job description text and summary if available and valid
         
         Args:
             job_path: Path to the job description file
             
         Returns:
-            Tuple of (cached_text, is_valid)
+            Tuple of (cached_text, cached_summary, is_valid)
         """
         try:
             cache_file_path = self._get_cache_file_path(job_path, "job")
             cached_data = self._load_cache(cache_file_path)
             
             if not cached_data:
-                return None, False
+                return None, None, False
             
             # Check if file has been modified since caching
             cached_timestamp = cached_data.get("timestamp", 0)
@@ -127,22 +127,23 @@ class DocumentCache:
             
             if current_timestamp > cached_timestamp:
                 logger.info(f"Job description file modified, cache invalid: {job_path}")
-                return None, False
+                return None, None, False
             
             logger.info(f"Using cached job description: {job_path}")
-            return cached_data.get("parsed_text"), True
+            return cached_data.get("parsed_text"), cached_data.get("summary"), True
             
         except Exception as e:
             logger.error(f"Error checking job description cache: {e}")
-            return None, False
+            return None, None, False
     
-    def cache_resume(self, resume_path: str, parsed_text: str):
+    def cache_resume(self, resume_path: str, parsed_text: str, summary: str = None):
         """
-        Cache parsed resume text
+        Cache parsed resume text and summary
         
         Args:
             resume_path: Path to the resume file
             parsed_text: Parsed text content
+            summary: Summary of the resume content
         """
         try:
             cache_file_path = self._get_cache_file_path(resume_path, "resume")
@@ -151,6 +152,7 @@ class DocumentCache:
             cache_data = {
                 "file_path": resume_path,
                 "parsed_text": parsed_text,
+                "summary": summary,
                 "timestamp": timestamp,
                 "cached_at": datetime.now().isoformat(),
                 "file_size": os.path.getsize(resume_path)
@@ -163,13 +165,14 @@ class DocumentCache:
             logger.error(f"Error caching resume: {e}")
             raise
     
-    def cache_job_description(self, job_path: str, parsed_text: str):
+    def cache_job_description(self, job_path: str, parsed_text: str, summary: str = None):
         """
-        Cache parsed job description text
+        Cache parsed job description text and summary
         
         Args:
             job_path: Path to the job description file
             parsed_text: Parsed text content
+            summary: Summary of the job description content
         """
         try:
             cache_file_path = self._get_cache_file_path(job_path, "job")
@@ -178,6 +181,7 @@ class DocumentCache:
             cache_data = {
                 "file_path": job_path,
                 "parsed_text": parsed_text,
+                "summary": summary,
                 "timestamp": timestamp,
                 "cached_at": datetime.now().isoformat(),
                 "file_size": os.path.getsize(job_path)

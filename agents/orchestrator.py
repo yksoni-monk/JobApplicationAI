@@ -17,6 +17,7 @@ from agents.resume_parser import ResumeParserAgent
 from agents.job_analyzer import JobAnalyzerAgent
 from agents.email_writer import EmailWriterAgent
 from utils.cache_utils import DocumentCache
+from utils.summary_generator import SummaryGenerator
 
 logger = logging.getLogger(__name__)
 
@@ -124,8 +125,12 @@ You are the decision-maker that ensures all agents work together effectively to 
             if not job_result.get("success", False):
                 return {"error": f"Job analysis failed: {job_result.get('error', 'Unknown error')}"}
             
-            # Step 3: Strategic Analysis and Decision Making
-            logger.info("Step 3: Performing strategic analysis...")
+            # Step 3: Generate targeted summaries and value proposition
+            logger.info("Step 3: Generating targeted summaries and value proposition...")
+            targeted_summaries = self._generate_targeted_summaries(resume_result, job_result)
+            
+            # Step 4: Strategic Analysis and Decision Making
+            logger.info("Step 4: Performing strategic analysis...")
             strategic_analysis = self._perform_strategic_analysis(resume_result, job_result)
             
             # Step 4: Determine Optimal Email Style
@@ -136,7 +141,7 @@ You are the decision-maker that ensures all agents work together effectively to 
             
             # Step 5: Generate Email
             logger.info("Step 5: Generating email...")
-            email_result = self._generate_email(resume_result, job_result, email_style)
+            email_result = self._generate_email(resume_result, job_result, email_style, targeted_summaries)
             if not email_result.get("success", False):
                 return {"error": f"Email generation failed: {email_result.get('error', 'Unknown error')}"}
             
@@ -172,23 +177,25 @@ You are the decision-maker that ensures all agents work together effectively to 
             }
     
     def _parse_resume(self, resume_path: str) -> Dict[str, Any]:
-        """Parse a resume using the Resume Parser Agent with caching"""
+        """Parse a resume using the Resume Parser Agent with caching and summary generation"""
         try:
             if not os.path.exists(resume_path):
                 return {"success": False, "error": f"File not found: {resume_path}"}
             
-            # Initialize cache
+            # Initialize cache and summary generator
             cache = DocumentCache()
+            summary_generator = SummaryGenerator(self.llm)
             
-            # Check if we have cached resume text
-            cached_text, is_valid = cache.get_cached_resume(resume_path)
+            # Check if we have cached resume text and summary
+            cached_text, cached_summary, is_valid = cache.get_cached_resume(resume_path)
             
             if is_valid and cached_text:
                 logger.info(f"Using cached resume text for: {resume_path}")
-                # Create result structure with cached text
+                # Create result structure with cached text and summary
                 result = {
                     "success": True,
                     "content": cached_text,
+                    "summary": cached_summary,
                     "cached": True,
                     "message": f"Successfully loaded cached resume from {resume_path}"
                 }
@@ -197,13 +204,19 @@ You are the decision-maker that ensures all agents work together effectively to 
                 # Parse the resume using the agent
                 result = self.resume_parser.parse_resume(resume_path)
                 
-                # Cache the parsed text if parsing was successful
+                # Generate and cache summary if parsing was successful
                 if result.get("success", False) and "raw_content" in result:
                     try:
                         # Cache the raw text content from the PDF
                         raw_text = result["raw_content"].get("raw_text", "")
                         if raw_text:
-                            cache.cache_resume(resume_path, raw_text)
+                            # Generate targeted summary (will be updated with job requirements later)
+                            summary = summary_generator.generate_resume_summary(
+                                result["raw_content"], 
+                                "Technology and business leadership role"
+                            )
+                            cache.cache_resume(resume_path, raw_text, summary)
+                            result["summary"] = summary
                     except Exception as cache_error:
                         logger.warning(f"Failed to cache resume: {cache_error}")
             
@@ -215,16 +228,17 @@ You are the decision-maker that ensures all agents work together effectively to 
             return {"success": False, "error": str(e)}
     
     def _analyze_job(self, job_description_path: str) -> Dict[str, Any]:
-        """Analyze the job description using the Job Analyzer Agent with caching"""
+        """Analyze the job description using the Job Analyzer Agent with caching and summary generation"""
         try:
             if not os.path.exists(job_description_path):
                 return {"success": False, "error": f"File not found: {job_description_path}"}
             
-            # Initialize cache
+            # Initialize cache and summary generator
             cache = DocumentCache()
+            summary_generator = SummaryGenerator(self.llm)
             
-            # Check if we have cached job description text
-            cached_text, is_valid = cache.get_cached_job_description(job_description_path)
+            # Check if we have cached job description text and summary
+            cached_text, cached_summary, is_valid = cache.get_cached_job_description(job_description_path)
             
             if is_valid and cached_text:
                 logger.info(f"Using cached job description text for: {job_description_path}")
@@ -232,19 +246,22 @@ You are the decision-maker that ensures all agents work together effectively to 
                 job_description = cached_text
                 result = self.job_analyzer.analyze_job(job_description)
                 result["cached"] = True
+                result["summary"] = cached_summary
             else:
                 logger.info(f"Reading job description (not cached or cache invalid): {job_description_path}")
                 # Read job description file
                 with open(job_description_path, 'r', encoding='utf-8') as f:
                     job_description = f.read()
                 
-                # Cache the job description text
+                # Generate and cache summary
                 try:
-                    cache.cache_job_description(job_description_path, job_description)
+                    summary = summary_generator.generate_job_summary(job_description)
+                    cache.cache_job_description(job_description_path, job_description, summary)
+                    result = self.job_analyzer.analyze_job(job_description)
+                    result["summary"] = summary
                 except Exception as cache_error:
                     logger.warning(f"Failed to cache job description: {cache_error}")
-                
-                result = self.job_analyzer.analyze_job(job_description)
+                    result = self.job_analyzer.analyze_job(job_description)
             
             self.shared_context["job_analysis"] = result
             return result
@@ -252,6 +269,70 @@ You are the decision-maker that ensures all agents work together effectively to 
         except Exception as e:
             logger.error(f"Error analyzing job: {e}")
             return {"success": False, "error": str(e)}
+    
+    def _generate_targeted_summaries(self, resume_result: Dict[str, Any], 
+                                    job_result: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate targeted summaries and value proposition for email generation"""
+        try:
+            summary_generator = SummaryGenerator(self.llm)
+            
+            # Get job requirements for targeted resume summary
+            job_text = job_result.get("raw_text", "")
+            if not job_text:
+                # Try to get from cached content
+                job_text = self.shared_context.get("job_analysis", {}).get("raw_text", "")
+            
+            # Generate targeted resume summary based on job requirements
+            if resume_result.get("success", False) and "raw_content" in resume_result:
+                targeted_resume_summary = summary_generator.generate_resume_summary(
+                    resume_result["raw_content"], 
+                    job_text
+                )
+                
+                # Update the resume result with targeted summary
+                resume_result["targeted_summary"] = targeted_resume_summary
+                
+                # Update cache with targeted summary
+                try:
+                    cache = DocumentCache()
+                    raw_text = resume_result["raw_content"].get("raw_text", "")
+                    if raw_text:
+                        cache.cache_resume(
+                            resume_result.get("file_path", ""), 
+                            raw_text, 
+                            targeted_resume_summary
+                        )
+                except Exception as cache_error:
+                    logger.warning(f"Failed to update resume cache with targeted summary: {cache_error}")
+            
+            # Generate value proposition
+            resume_summary = resume_result.get("targeted_summary", resume_result.get("summary", ""))
+            job_summary = job_result.get("summary", "")
+            
+            if resume_summary and job_summary:
+                value_proposition = summary_generator.generate_value_proposition(
+                    resume_summary, 
+                    job_summary
+                )
+            else:
+                value_proposition = "My experience and skills align well with your requirements and I can contribute significantly to your team's success."
+            
+            return {
+                "targeted_resume_summary": resume_result.get("targeted_summary", ""),
+                "job_summary": job_summary,
+                "value_proposition": value_proposition,
+                "success": True
+            }
+            
+        except Exception as e:
+            logger.error(f"Error generating targeted summaries: {e}")
+            return {
+                "targeted_resume_summary": "",
+                "job_summary": "",
+                "value_proposition": "My experience and skills align well with your requirements.",
+                "success": False,
+                "error": str(e)
+            }
     
     def _perform_strategic_analysis(self, resume_result: Dict[str, Any], 
                                    job_result: Dict[str, Any]) -> Dict[str, Any]:
@@ -350,13 +431,14 @@ You are the decision-maker that ensures all agents work together effectively to 
             return "executive_formal"
     
     def _generate_email(self, resume_result: Dict[str, Any], job_result: Dict[str, Any], 
-                       email_style: str) -> Dict[str, Any]:
-        """Generate the email using the Email Writer Agent"""
+                       email_style: str, targeted_summaries: Dict[str, Any]) -> Dict[str, Any]:
+        """Generate the email using the Email Writer Agent with targeted summaries"""
         try:
             result = self.email_writer.write_email(
                 resume_data=resume_result,
                 job_analysis=job_result,
-                email_style=email_style
+                email_style=email_style,
+                targeted_summaries=targeted_summaries
             )
             
             # Save email to markdown file
