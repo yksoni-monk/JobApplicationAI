@@ -1,5 +1,6 @@
 .env
 cache/
+output/
 __pycache__/
 *.pyc
 *.pyo
@@ -21,3 +22,8 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+# Log files
+*.log
+app.log
+output/*.log

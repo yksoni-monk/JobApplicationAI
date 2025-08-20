@@ -25,16 +25,15 @@ class OrchestratorTool(BaseTool):
     
     name: str = "orchestrate_job_application"
     description: str = "Coordinate the entire job application process from resume parsing to email generation"
-    orchestrator: 'OrchestratorAgent'
     
     def __init__(self, orchestrator: 'OrchestratorAgent'):
         super().__init__()
-        self.orchestrator = orchestrator
+        self._orchestrator = orchestrator
     
     def _run(self, resume_path: str, job_description_path: str, email_style: str = "auto") -> Dict[str, Any]:
         """Execute the complete job application workflow"""
         try:
-            result = self.orchestrator.execute_workflow(
+            result = self._orchestrator.execute_workflow(
                 resume_path=resume_path,
                 job_description_path=job_description_path,
                 email_style=email_style
@@ -199,9 +198,12 @@ You are the decision-maker that ensures all agents work together effectively to 
                 result = self.resume_parser.parse_resume(resume_path)
                 
                 # Cache the parsed text if parsing was successful
-                if result.get("success", False) and "content" in result:
+                if result.get("success", False) and "raw_content" in result:
                     try:
-                        cache.cache_resume(resume_path, result["content"])
+                        # Cache the raw text content from the PDF
+                        raw_text = result["raw_content"].get("raw_text", "")
+                        if raw_text:
+                            cache.cache_resume(resume_path, raw_text)
                     except Exception as cache_error:
                         logger.warning(f"Failed to cache resume: {cache_error}")
             

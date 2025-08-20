@@ -21,11 +21,10 @@ class EmailGenerationTool(BaseTool):
     
     name: str = "generate_email_content"
     description: str = "Generate executive-style email content based on resume and job analysis"
-    email_template_manager: EmailTemplateManager
     
     def __init__(self, email_template_manager: EmailTemplateManager):
         super().__init__()
-        self.template_manager = email_template_manager
+        self._template_manager = email_template_manager
     
     def _run(self, resume_data: Dict[str, Any], job_analysis: Dict[str, Any], email_style: str = "executive_formal") -> Dict[str, Any]:
         """Generate email content based on provided data"""
@@ -197,8 +196,8 @@ class EmailGenerationTool(BaseTool):
             })
             
             # Get template and format
-            template = self.template_manager.get_template(style)
-            email_content = self.template_manager.format_template(template, context)
+            template = self._template_manager.get_template(style)
+            email_content = self._template_manager.format_template(template, context)
             
             return {
                 "subject": template.subject.format(**context),

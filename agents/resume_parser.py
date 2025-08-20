@@ -23,11 +23,10 @@ class ResumeParserTool(BaseTool):
     
     name: str = "parse_resume_pdf"
     description: str = "Parse a PDF resume file and extract structured information"
-    pdf_parser: PDFParser
     
     def __init__(self, pdf_parser: PDFParser):
         super().__init__()
-        self.pdf_parser = pdf_parser
+        self._pdf_parser = pdf_parser
     
     def _run(self, file_path: str) -> Dict[str, Any]:
         """Parse the PDF resume"""
@@ -35,7 +34,7 @@ class ResumeParserTool(BaseTool):
             if not os.path.exists(file_path):
                 return {"error": f"File not found: {file_path}"}
             
-            parsed_content = self.pdf_parser.parse_pdf(file_path)
+            parsed_content = self._pdf_parser.parse_pdf(file_path)
             return {
                 "success": True,
                 "content": parsed_content,
