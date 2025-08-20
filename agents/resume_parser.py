@@ -21,8 +21,9 @@ logger = logging.getLogger(__name__)
 class ResumeParserTool(BaseTool):
     """Tool for parsing PDF resumes"""
     
-    name = "parse_resume_pdf"
-    description = "Parse a PDF resume file and extract structured information"
+    name: str = "parse_resume_pdf"
+    description: str = "Parse a PDF resume file and extract structured information"
+    pdf_parser: PDFParser
     
     def __init__(self, pdf_parser: PDFParser):
         super().__init__()

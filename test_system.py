@@ -212,7 +212,7 @@ def main():
         print("\nNext steps:")
         print("1. Install dependencies: pip install -r requirements.txt")
         print("2. Set your OpenAI API key in a .env file")
-        print("3. Run: python main.py YogeshResume.pdf JobDescription.txt")
+        print("3. Run: python main.py -r YogeshResume.pdf -j JobDescription.txt")
     else:
         print("⚠️  Some tests failed. Please check the errors above.")
     

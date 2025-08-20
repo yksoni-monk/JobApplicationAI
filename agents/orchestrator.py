@@ -16,14 +16,16 @@ from langchain_core.messages import AIMessage
 from agents.resume_parser import ResumeParserAgent
 from agents.job_analyzer import JobAnalyzerAgent
 from agents.email_writer import EmailWriterAgent
+from utils.cache_utils import DocumentCache
 
 logger = logging.getLogger(__name__)
 
 class OrchestratorTool(BaseTool):
     """Tool for orchestrating the job application process"""
     
-    name = "orchestrate_job_application"
-    description = "Coordinate the entire job application process from resume parsing to email generation"
+    name: str = "orchestrate_job_application"
+    description: str = "Coordinate the entire job application process from resume parsing to email generation"
+    orchestrator: 'OrchestratorAgent'
     
     def __init__(self, orchestrator: 'OrchestratorAgent'):
         super().__init__()
@@ -171,12 +173,38 @@ You are the decision-maker that ensures all agents work together effectively to 
             }
     
     def _parse_resume(self, resume_path: str) -> Dict[str, Any]:
-        """Parse a resume using the Resume Parser Agent"""
+        """Parse a resume using the Resume Parser Agent with caching"""
         try:
             if not os.path.exists(resume_path):
                 return {"success": False, "error": f"File not found: {resume_path}"}
             
-            result = self.resume_parser.parse_resume(resume_path)
+            # Initialize cache
+            cache = DocumentCache()
+            
+            # Check if we have cached resume text
+            cached_text, is_valid = cache.get_cached_resume(resume_path)
+            
+            if is_valid and cached_text:
+                logger.info(f"Using cached resume text for: {resume_path}")
+                # Create result structure with cached text
+                result = {
+                    "success": True,
+                    "content": cached_text,
+                    "cached": True,
+                    "message": f"Successfully loaded cached resume from {resume_path}"
+                }
+            else:
+                logger.info(f"Parsing resume (not cached or cache invalid): {resume_path}")
+                # Parse the resume using the agent
+                result = self.resume_parser.parse_resume(resume_path)
+                
+                # Cache the parsed text if parsing was successful
+                if result.get("success", False) and "content" in result:
+                    try:
+                        cache.cache_resume(resume_path, result["content"])
+                    except Exception as cache_error:
+                        logger.warning(f"Failed to cache resume: {cache_error}")
+            
             self.shared_context["resume_data"] = result
             return result
             
@@ -185,16 +213,37 @@ You are the decision-maker that ensures all agents work together effectively to 
             return {"success": False, "error": str(e)}
     
     def _analyze_job(self, job_description_path: str) -> Dict[str, Any]:
-        """Analyze the job description using the Job Analyzer Agent"""
+        """Analyze the job description using the Job Analyzer Agent with caching"""
         try:
             if not os.path.exists(job_description_path):
                 return {"success": False, "error": f"File not found: {job_description_path}"}
             
-            # Read job description file
-            with open(job_description_path, 'r', encoding='utf-8') as f:
-                job_description = f.read()
+            # Initialize cache
+            cache = DocumentCache()
             
-            result = self.job_analyzer.analyze_job(job_description)
+            # Check if we have cached job description text
+            cached_text, is_valid = cache.get_cached_job_description(job_description_path)
+            
+            if is_valid and cached_text:
+                logger.info(f"Using cached job description text for: {job_description_path}")
+                # Use cached text for analysis
+                job_description = cached_text
+                result = self.job_analyzer.analyze_job(job_description)
+                result["cached"] = True
+            else:
+                logger.info(f"Reading job description (not cached or cache invalid): {job_description_path}")
+                # Read job description file
+                with open(job_description_path, 'r', encoding='utf-8') as f:
+                    job_description = f.read()
+                
+                # Cache the job description text
+                try:
+                    cache.cache_job_description(job_description_path, job_description)
+                except Exception as cache_error:
+                    logger.warning(f"Failed to cache job description: {cache_error}")
+                
+                result = self.job_analyzer.analyze_job(job_description)
+            
             self.shared_context["job_analysis"] = result
             return result
             

@@ -19,8 +19,9 @@ logger = logging.getLogger(__name__)
 class EmailGenerationTool(BaseTool):
     """Tool for generating email content"""
     
-    name = "generate_email_content"
-    description = "Generate executive-style email content based on resume and job analysis"
+    name: str = "generate_email_content"
+    description: str = "Generate executive-style email content based on resume and job analysis"
+    email_template_manager: EmailTemplateManager
     
     def __init__(self, email_template_manager: EmailTemplateManager):
         super().__init__()
@@ -267,7 +268,7 @@ class EmailGenerationTool(BaseTool):
 class EmailWriterAgent:
     """LangChain-based agent for writing executive-style emails"""
     
-    def __init__(self, llm: ChatOpenAI):
+    def __init__(self, llm: ChatGoogleGenerativeAI):
         self.llm = llm
         self.email_template_manager = EmailTemplateManager()
         self.tools = [EmailGenerationTool(self.email_template_manager)]

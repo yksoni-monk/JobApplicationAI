@@ -158,7 +158,7 @@ AnalogDevicesApp/
 ### 1. **Quick Setup** (5 minutes)
 ```bash
 # Clone and navigate to project
-cd AnalogDevicesApp
+cd JobApplicationAI
 
 # Create virtual environment (recommended)
 python -m venv venv
@@ -183,13 +183,17 @@ python test_system.py
 ### 3. **Run the Full Workflow** ✅ **READY**
 ```bash
 # Basic execution
-python main.py YogeshResume.pdf JobDescription.txt
+python main.py -r YogeshResume.pdf -j JobDescription.txt
 
 # With custom email style
-python main.py YogeshResume.pdf JobDescription.txt --style startup_casual
+python main.py -r YogeshResume.pdf -j JobDescription.txt --style startup_casual
 
 # Enable debug mode for detailed logging
-python main.py YogeshResume.pdf JobDescription.txt --debug
+python main.py -r YogeshResume.pdf -j JobDescription.txt --debug
+
+# Cache management
+python main.py --cache-info          # Show cached documents
+python main.py --clear-cache         # Clear all cached documents
 
 # Help and options
 python main.py --help
@@ -259,6 +263,33 @@ The system generates:
 
 ---
 
+## 🚀 **NEW: Document Caching System** ✅ **IMPLEMENTED**
+
+The system now includes intelligent caching for parsed documents to improve performance:
+
+### **Cache Features**
+- **Automatic Caching**: Resume and job description text are automatically cached after first parsing
+- **Timestamp Validation**: Cache is automatically invalidated when source files are modified
+- **Hash-based Storage**: Documents are cached using content hashes for efficient storage
+- **Cache Management**: View cache information and clear cache as needed
+
+### **Cache Commands**
+```bash
+# View cache information
+python main.py --cache-info
+
+# Clear all cached documents
+python main.py --clear-cache
+```
+
+### **How It Works**
+1. **First Run**: Documents are parsed and cached automatically
+2. **Subsequent Runs**: If files haven't changed, cached text is used (faster)
+3. **File Changes**: If files are modified, cache is invalidated and documents are re-parsed
+4. **Efficient Storage**: Cache files are stored in `cache/` directory with JSON format
+
+---
+
 ## 🔧 Customization Options ✅ **AVAILABLE**
 
 ### Email Templates
@@ -325,7 +356,7 @@ python test_system.py
 ### Debug Mode
 ```bash
 # Enable verbose logging
-python main.py resume.pdf job.txt --debug
+python main.py -r resume.pdf -j job.txt --debug
 
 # Check logs
 tail -f output/app.log

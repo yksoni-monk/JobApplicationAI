@@ -17,6 +17,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from langchain_google_genai import ChatGoogleGenerativeAI
 from agents.orchestrator import OrchestratorAgent
+from utils.cache_utils import DocumentCache
 
 # Configure logging
 logging.basicConfig(
@@ -245,19 +246,23 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python main.py YogeshResume.pdf JobDescription.txt
-  python main.py resume.pdf job.txt --style startup_casual
-  python main.py resume.pdf job.txt --debug
+  python main.py -r YogeshResume.pdf -j JobDescription.txt
+  python main.py -r resume.pdf -j job.txt --style startup_casual
+  python main.py -r resume.pdf -j job.txt --debug
+  python main.py --cache-info
+  python main.py --clear-cache
         """
     )
     
     parser.add_argument(
-        "resume_path",
+        "-r", "--resume",
+        required=False,
         help="Path to the resume PDF file"
     )
     
     parser.add_argument(
-        "job_description_path",
+        "-j", "--job-description",
+        required=False,
         help="Path to the job description text file"
     )
     
@@ -274,6 +279,18 @@ Examples:
         help="Enable debug logging"
     )
     
+    parser.add_argument(
+        "--cache-info",
+        action="store_true",
+        help="Show information about cached documents"
+    )
+    
+    parser.add_argument(
+        "--clear-cache",
+        action="store_true",
+        help="Clear all cached documents"
+    )
+    
     args = parser.parse_args()
     
     try:
@@ -287,8 +304,41 @@ Examples:
             print("❌ Failed to load environment variables")
             sys.exit(1)
         
+        # Handle cache operations
+        if args.cache_info:
+            cache = DocumentCache()
+            cache_info = cache.get_cache_info()
+            print("\n📁 CACHE INFORMATION")
+            print("=" * 30)
+            print(f"Cache directory: {cache_info['cache_directory']}")
+            print(f"Total cached files: {len(cache_info['cached_files'])}")
+            print(f"Total cache size: {cache_info['total_size']} bytes")
+            
+            if cache_info['cached_files']:
+                print("\nCached files:")
+                for cached_file in cache_info['cached_files']:
+                    print(f"  • {cached_file['file']}")
+                    print(f"    Original: {cached_file['original_file']}")
+                    print(f"    Cached at: {cached_file['cached_at']}")
+                    print(f"    Size: {cached_file['size']} bytes")
+            else:
+                print("\nNo cached files found.")
+            sys.exit(0)
+        
+        if args.clear_cache:
+            cache = DocumentCache()
+            cache.clear_cache()
+            print("\n🗑️  Cache cleared successfully!")
+            sys.exit(0)
+        
+        # Check if resume and job description are provided for workflow execution
+        if not args.resume or not args.job_description:
+            print("❌ Resume (-r) and job description (-j) are required for workflow execution")
+            print("Use --cache-info or --clear-cache for cache operations")
+            sys.exit(1)
+        
         # Validate input files
-        if not validate_input_files(args.resume_path, args.job_description_path):
+        if not validate_input_files(args.resume, args.job_description):
             print("❌ Input file validation failed")
             sys.exit(1)
         
@@ -298,15 +348,15 @@ Examples:
             sys.exit(1)
         
         # Run workflow
-        print(f"\n📄 Resume: {args.resume_path}")
-        print(f"📋 Job Description: {args.job_description_path}")
+        print(f"\n📄 Resume: {args.resume}")
+        print(f"📋 Job Description: {args.job_description}")
         print(f"🎨 Email Style: {args.style}")
         print(f"🔍 Debug Mode: {'Enabled' if args.debug else 'Disabled'}")
         print("\nStarting workflow with Gemini Pro 2.5...")
         
         result = run_workflow(
-            resume_path=args.resume_path,
-            job_description_path=args.job_description_path,
+            resume_path=args.resume,
+            job_description_path=args.job_description,
             email_style=args.style,
             debug=args.debug
         )

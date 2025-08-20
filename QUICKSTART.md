@@ -5,7 +5,7 @@
 ### 1. Set Up Environment
 ```bash
 # Navigate to the project directory
-cd AnalogDevicesApp
+cd JobApplicationAI
 
 # Create virtual environment (recommended)
 python -m venv venv
@@ -35,13 +35,13 @@ python test_system.py
 ### 4. Run the Full Workflow
 ```bash
 # Execute the complete job application workflow
-python main.py YogeshResume.pdf JobDescription.txt
+python main.py -r YogeshResume.pdf -j JobDescription.txt
 
 # Or with custom email style
-python main.py YogeshResume.pdf JobDescription.txt --style startup_casual
+python main.py -r YogeshResume.pdf -j JobDescription.txt --style startup_casual
 
 # Enable debug mode for detailed logging
-python main.py YogeshResume.pdf JobDescription.txt --debug
+python main.py -r YogeshResume.pdf -j JobDescription.txt --debug
 ```
 
 ## 📁 What You'll Get
@@ -83,7 +83,7 @@ After running the workflow, you'll find:
 ### Debug Mode
 ```bash
 # Enable detailed logging
-python main.py resume.pdf job.txt --debug
+python main.py -r resume.pdf -j job.txt --debug
 
 # Check logs
 tail -f output/app.log
@@ -122,7 +122,7 @@ result = orchestrator.execute_workflow(
 ```bash
 # Process multiple job applications
 for job_file in jobs/*.txt; do
-    python main.py resume.pdf "$job_file" --style auto
+    python main.py -r resume.pdf -j "$job_file" --style auto
 done
 ```
 

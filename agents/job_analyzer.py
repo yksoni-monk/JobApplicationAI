@@ -18,8 +18,8 @@ logger = logging.getLogger(__name__)
 class JobDescriptionTool(BaseTool):
     """Tool for analyzing job description text"""
     
-    name = "analyze_job_description"
-    description = "Analyze job description text and extract key requirements, responsibilities, and company information"
+    name: str = "analyze_job_description"
+    description: str = "Analyze job description text and extract key requirements, responsibilities, and company information"
     
     def _run(self, job_description: str) -> Dict[str, Any]:
         """Analyze the job description text"""
