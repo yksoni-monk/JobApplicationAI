@@ -7,7 +7,7 @@ import logging
 import os
 from typing import Dict, List, Any, Optional
 from langchain.agents import AgentExecutor, create_openai_functions_agent
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.tools import BaseTool
 from langchain_core.messages import AIMessage

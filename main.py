@@ -2,6 +2,7 @@
 """
 Main Application for Job Application Multi-Agent System
 Orchestrates the entire workflow from resume parsing to email generation
+Uses Gemini Pro 2.5 via OpenAI-compatible API
 """
 
 import os
@@ -14,7 +15,7 @@ from typing import Dict, Any
 # Add the current directory to Python path for imports
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from agents.orchestrator import OrchestratorAgent
 
 # Configure logging
@@ -36,10 +37,10 @@ def load_environment():
         load_dotenv()
         
         # Check for required environment variables
-        openai_api_key = os.getenv('OPENAI_API_KEY')
-        if not openai_api_key:
-            logger.error("OPENAI_API_KEY not found in environment variables")
-            logger.info("Please create a .env file with your OpenAI API key")
+        gemini_api_key = os.getenv('GEMINI_API_KEY')
+        if not gemini_api_key:
+            logger.error("GEMINI_API_KEY not found in environment variables")
+            logger.info("Please create a .env file with your Gemini API key")
             return False
         
         logger.info("Environment variables loaded successfully")
@@ -52,25 +53,33 @@ def load_environment():
         logger.error(f"Error loading environment: {e}")
         return False
 
-def initialize_llm() -> ChatOpenAI:
-    """Initialize the OpenAI LLM"""
+def initialize_llm() -> ChatGoogleGenerativeAI:
+    """Initialize the Gemini LLM"""
     try:
-        model_name = os.getenv('OPENAI_MODEL', 'gpt-4-turbo-preview')
-        temperature = float(os.getenv('OPENAI_TEMPERATURE', '0.7'))
-        max_tokens = int(os.getenv('OPENAI_MAX_TOKENS', '4000'))
+        model_name = os.getenv('GEMINI_MODEL', 'gemini-1.5-pro')
+        temperature = float(os.getenv('GEMINI_TEMPERATURE', '0.7'))
+        max_tokens = int(os.getenv('GEMINI_MAX_TOKENS', '4000'))
         
-        llm = ChatOpenAI(
+        # Use OpenAI-compatible client for Gemini
+        import openai
+        
+        # Configure OpenAI client to use Gemini
+        openai.api_key = os.getenv('GEMINI_API_KEY')
+        openai.base_url = os.getenv('GEMINI_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent')
+        
+        # Create LangChain wrapper for Gemini
+        llm = ChatGoogleGenerativeAI(
             model=model_name,
             temperature=temperature,
-            max_tokens=max_tokens,
-            api_key=os.getenv('OPENAI_API_KEY')
+            max_output_tokens=max_tokens,
+            google_api_key=os.getenv('GEMINI_API_KEY')
         )
         
-        logger.info(f"LLM initialized with model: {model_name}")
+        logger.info(f"Gemini LLM initialized with model: {model_name}")
         return llm
         
     except Exception as e:
-        logger.error(f"Error initializing LLM: {e}")
+        logger.error(f"Error initializing Gemini LLM: {e}")
         raise
 
 def validate_input_files(resume_path: str, job_description_path: str) -> bool:
@@ -131,7 +140,7 @@ def run_workflow(resume_path: str, job_description_path: str,
             logger.info("Debug mode enabled")
         
         # Initialize LLM
-        logger.info("Initializing LLM...")
+        logger.info("Initializing Gemini LLM...")
         llm = initialize_llm()
         
         # Create orchestrator agent
@@ -232,7 +241,7 @@ def print_results(result: Dict[str, Any]):
 def main():
     """Main application entry point"""
     parser = argparse.ArgumentParser(
-        description="Job Application Multi-Agent System",
+        description="Job Application Multi-Agent System (Powered by Gemini Pro 2.5)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -270,6 +279,7 @@ Examples:
     try:
         # Print banner
         print("🚀 Job Application Multi-Agent System")
+        print("🤖 Powered by Gemini Pro 2.5")
         print("=" * 50)
         
         # Load environment
@@ -292,7 +302,7 @@ Examples:
         print(f"📋 Job Description: {args.job_description_path}")
         print(f"🎨 Email Style: {args.style}")
         print(f"🔍 Debug Mode: {'Enabled' if args.debug else 'Disabled'}")
-        print("\nStarting workflow...")
+        print("\nStarting workflow with Gemini Pro 2.5...")
         
         result = run_workflow(
             resume_path=args.resume_path,

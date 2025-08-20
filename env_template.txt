@@ -1,10 +1,11 @@
-# OpenAI Configuration
-OPENAI_API_KEY=your_openai_api_key_here
-OPENAI_MODEL=gpt-4-turbo-preview
+# Gemini Configuration
+GEMINI_API_KEY=your_gemini_api_key_here
+GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent
+
+# Model Configuration
+GEMINI_MODEL=gemini-2.5-pro
+GEMINI_TEMPERATURE=0.7
+GEMINI_MAX_TOKENS=4000
 
 # Optional: Debug mode
 DEBUG_MODE=false
-
-# Optional: Custom model parameters
-OPENAI_TEMPERATURE=0.7
-OPENAI_MAX_TOKENS=4000

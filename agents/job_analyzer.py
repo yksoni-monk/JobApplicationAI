@@ -1,13 +1,14 @@
 """
 Job Analyzer Agent
 Uses LangChain to analyze job descriptions and extract key requirements
+Powered by Gemini Pro 2.5
 """
 
 import logging
 import re
 from typing import Dict, List, Any, Optional
 from langchain.agents import AgentExecutor, create_openai_functions_agent
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.tools import BaseTool
 from langchain_core.messages import AIMessage
@@ -255,7 +256,7 @@ class JobDescriptionTool(BaseTool):
 class JobAnalyzerAgent:
     """LangChain-based agent for analyzing job descriptions"""
     
-    def __init__(self, llm: ChatOpenAI):
+    def __init__(self, llm: ChatGoogleGenerativeAI):
         self.llm = llm
         self.tools = [JobDescriptionTool()]
         self.agent = self._create_agent()
@@ -268,7 +269,7 @@ class JobAnalyzerAgent:
     
     def _create_agent(self):
         """Create the LangChain agent"""
-        system_prompt = """You are a Job Description Analyzer Agent specialized in understanding job requirements and company information.
+        system_prompt = """You are a Job Description Analyzer Agent specialized in understanding job requirements and company information, powered by Gemini Pro 2.5.
 
 Your responsibilities:
 1. Analyze job descriptions to extract key requirements

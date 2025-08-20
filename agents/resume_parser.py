@@ -1,13 +1,14 @@
 """
 Resume Parser Agent
 Uses LangChain to parse and analyze resume content
+Powered by Gemini Pro 2.5
 """
 
 import os
 import logging
 from typing import Dict, List, Any
 from langchain.agents import AgentExecutor, create_openai_functions_agent
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.schema import BaseMessage, HumanMessage, SystemMessage
 from langchain.tools import BaseTool
@@ -46,7 +47,7 @@ class ResumeParserTool(BaseTool):
 class ResumeParserAgent:
     """LangChain-based agent for parsing and analyzing resumes"""
     
-    def __init__(self, llm: ChatOpenAI):
+    def __init__(self, llm: ChatGoogleGenerativeAI):
         self.llm = llm
         self.pdf_parser = PDFParser()
         self.tools = [ResumeParserTool(self.pdf_parser)]
@@ -60,7 +61,7 @@ class ResumeParserAgent:
     
     def _create_agent(self):
         """Create the LangChain agent"""
-        system_prompt = """You are a Resume Parser Agent specialized in extracting and analyzing resume information.
+        system_prompt = """You are a Resume Parser Agent specialized in extracting and analyzing resume information, powered by Gemini Pro 2.5.
 
 Your responsibilities:
 1. Parse PDF resumes and extract structured information

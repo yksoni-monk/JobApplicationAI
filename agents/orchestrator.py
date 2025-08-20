@@ -1,13 +1,14 @@
 """
 Orchestrator Agent
 Top-level agent that coordinates all other agents and makes strategic decisions
+Uses Gemini Pro 2.5 via LangChain
 """
 
 import logging
 import os
 from typing import Dict, List, Any, Optional
 from langchain.agents import AgentExecutor, create_openai_functions_agent
-from langchain_openai import ChatOpenAI
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.tools import BaseTool
 from langchain_core.messages import AIMessage
@@ -44,7 +45,7 @@ class OrchestratorTool(BaseTool):
 class OrchestratorAgent:
     """Top-level agent that coordinates all other agents and makes strategic decisions"""
     
-    def __init__(self, llm: ChatOpenAI):
+    def __init__(self, llm: ChatGoogleGenerativeAI):
         self.llm = llm
         
         # Initialize all sub-agents
@@ -70,7 +71,7 @@ class OrchestratorAgent:
     
     def _create_agent(self):
         """Create the LangChain orchestrator agent"""
-        system_prompt = """You are the Orchestrator Agent, the master coordinator for a multi-agent job application system.
+        system_prompt = """You are the Orchestrator Agent, the master coordinator for a multi-agent job application system powered by Gemini Pro 2.5.
 
 Your responsibilities:
 1. Coordinate the execution of all sub-agents (Resume Parser, Job Analyzer, Email Writer)
@@ -108,7 +109,7 @@ You are the decision-maker that ensures all agents work together effectively to 
             Dictionary containing the complete workflow results
         """
         try:
-            logger.info("Starting job application workflow...")
+            logger.info("Starting job application workflow with Gemini Pro 2.5...")
             
             # Step 1: Parse Resume
             logger.info("Step 1: Parsing resume...")
@@ -146,7 +147,7 @@ You are the decision-maker that ensures all agents work together effectively to 
             logger.info("Step 7: Generating final summary...")
             final_summary = self._generate_final_summary(resume_result, job_result, email_result, strategic_analysis)
             
-            logger.info("Workflow completed successfully!")
+            logger.info("Workflow completed successfully with Gemini Pro 2.5!")
             
             return {
                 "success": True,
@@ -158,7 +159,7 @@ You are the decision-maker that ensures all agents work together effectively to 
                     "final_summary": final_summary
                 },
                 "email_style_used": email_style,
-                "message": "Job application workflow completed successfully"
+                "message": "Job application workflow completed successfully with Gemini Pro 2.5"
             }
             
         except Exception as e:
@@ -170,10 +171,10 @@ You are the decision-maker that ensures all agents work together effectively to 
             }
     
     def _parse_resume(self, resume_path: str) -> Dict[str, Any]:
-        """Parse the resume using the Resume Parser Agent"""
+        """Parse a resume using the Resume Parser Agent"""
         try:
             if not os.path.exists(resume_path):
-                return {"success": False, "error": f"Resume file not found: {resume_path}"}
+                return {"success": False, "error": f"File not found: {resume_path}"}
             
             result = self.resume_parser.parse_resume(resume_path)
             self.shared_context["resume_data"] = result
@@ -187,7 +188,7 @@ You are the decision-maker that ensures all agents work together effectively to 
         """Analyze the job description using the Job Analyzer Agent"""
         try:
             if not os.path.exists(job_description_path):
-                return {"success": False, "error": f"Job description file not found: {job_description_path}"}
+                return {"success": False, "error": f"File not found: {job_description_path}"}
             
             # Read job description file
             with open(job_description_path, 'r', encoding='utf-8') as f:

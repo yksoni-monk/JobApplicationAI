@@ -1,6 +1,9 @@
 # Core Framework
 langchain>=0.1.0
-langchain-openai>=0.1.0
+langchain-google-genai>=0.1.0
+
+# Gemini OpenAI-compatible API
+openai>=1.0.0
 
 # PDF Processing
 PyPDF2>=3.0.0
