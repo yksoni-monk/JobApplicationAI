@@ -19,17 +19,27 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from agents.orchestrator import OrchestratorAgent
 from utils.cache_utils import DocumentCache
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('output/app.log'),
-        logging.StreamHandler(sys.stdout)
-    ]
-)
-
+# Initialize logger without file handler initially
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# Create console handler
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setLevel(logging.INFO)
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler)
+
+def setup_file_logging():
+    """Setup file logging after output directory is created"""
+    try:
+        file_handler = logging.FileHandler('output/app.log')
+        file_handler.setLevel(logging.INFO)
+        file_handler.setFormatter(formatter)
+        logger.addHandler(file_handler)
+        logger.info("File logging initialized")
+    except Exception as e:
+        logger.warning(f"Could not setup file logging: {e}")
 
 def load_environment():
     """Load environment variables"""
@@ -346,6 +356,9 @@ Examples:
         if not create_output_directory():
             print("❌ Failed to create output directory")
             sys.exit(1)
+        
+        # Setup file logging after output directory is created
+        setup_file_logging()
         
         # Run workflow
         print(f"\n📄 Resume: {args.resume}")
